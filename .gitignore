@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Secrets — NEVER commit
+.env
+*.json
+!.env.example
+
+# ChromaDB local data
+chroma_data/
+
+# Data exports
+*.csv
