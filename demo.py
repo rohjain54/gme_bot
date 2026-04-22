@@ -23,7 +23,7 @@ from sentence_transformers import SentenceTransformer
 
 CHROMA_PATH = "./chroma_data"
 COLLECTION_NAME = "chat_messages"
-MEMORY_PATH = "/Users/rohjain/.claude/projects/-Users-rohjain-Documents-workplace-gme-bot/memory"
+MEMORY_PATH = "./memory"
 FAQ_SIMILARITY_THRESHOLD = 0.42
 
 SYSTEM_PROMPT = """\
