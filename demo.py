@@ -18,9 +18,10 @@ from pathlib import Path
 import chromadb
 import numpy as np
 import streamlit as st
-from anthropic import Anthropic
+from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
+LITELLM_BASE_URL = "https://litellm-api.groupondev.com"
 CHROMA_PATH = "./chroma_data"
 COLLECTION_NAME = "chat_messages"
 MEMORY_PATH = "./memory"
@@ -185,14 +186,16 @@ def call_claude(
         parts.append("Known Issue Context (FAQ / Playbook — investigate these before escalating):\n\n" + "\n\n".join(faq_parts))
     parts.append(f"Current message: {query}")
 
-    client = Anthropic(api_key=api_key)
-    response = client.messages.create(
+    client = OpenAI(api_key=api_key, base_url=LITELLM_BASE_URL)
+    response = client.chat.completions.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": "\n\n---\n\n".join(parts)}],
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": "\n\n---\n\n".join(parts)},
+        ],
     )
-    raw = response.content[0].text.strip()
+    raw = response.choices[0].message.content.strip()
 
     try:
         return json.loads(raw)
@@ -222,10 +225,10 @@ faq_sections, faq_embeddings = load_faq_knowledge_base(model)
 with st.sidebar:
     st.header("⚙️ Config")
     api_key = st.text_input(
-        "Anthropic API Key",
-        value=os.getenv("ANTHROPIC_API_KEY", ""),
+        "LiteLLM API Key",
+        value=os.getenv("LITELLM_API_KEY", ""),
         type="password",
-        help="Get from console.anthropic.com",
+        help="Groupon LiteLLM key — get via IT Operations portal",
     )
     n_results = st.slider("Conversations to retrieve", min_value=3, max_value=10, value=5)
 
@@ -258,7 +261,7 @@ query = st.text_area(
 
 ready = bool(query.strip() and api_key and collection)
 if not api_key:
-    st.info("Enter your Anthropic API key in the sidebar to enable responses.")
+    st.info("Enter your LiteLLM API key in the sidebar to enable responses.")
 if not collection:
     st.warning("Run `python bulk_ingest.py` to load the knowledge base first.")
 
@@ -272,7 +275,7 @@ if ask_btn and ready:
     with st.spinner("📋 Checking known issues playbook…"):
         faq_hits = faq_search(query, model, faq_sections, faq_embeddings, n=3)
 
-    with st.spinner("🧠 Calling Claude Sonnet 4.6…"):
+    with st.spinner("🧠 Calling Claude via LiteLLM…"):
         result = call_claude(query, hits, faq_hits, api_key)
 
     st.divider()
